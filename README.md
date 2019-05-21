@@ -170,3 +170,55 @@ AtomicLong ： 断路器打开或者上次测试的时间戳。
 @CacheResult(cacheKeyMethod=”getUserByIdCacheKey”) 注解 设置缓存 
 @CacheKey 指定key 优先级低
 @CacheRemove(commandKey=”getUserByIdCacheKey”)  清理缓存
+
+
+	分布式事务：
+1.	基于XA协议的两阶段提交。Xa中大致分为两部分：事务管理和本地资源管理器。本地资源管理器由数据库实现 。儿事务管理器作为全局调度者负责各个本地资源的提交和回滚。性能低、无法满足高并发。
+2.	消息事务+最终一致性。消息事务就是基于消息中间件的两阶段提交，它是将本地事务和发消息放在了一个分布式事务里。保证要么本地操作成功并且消息外发成功，要么全部失败。开源的rocketMQ就支持这一特性。
+3.	TCC编程模式。也是两阶段提交的变种。TCC提供了一个编程框架，将整个业务逻辑分为三块：Try、Confirm和Cancel三个操作。。以在线下单为例，Try阶段会去扣库存，Confirm阶段则是去更新订单状态，如果更新订单失败，则进入Cancel阶段，会去恢复库存。
+
+---LCN 分布式事务框架。核心功能是对本地事务的协调控制，它本身并不创建事务，只是对本地事务做协调控制。与第三方的框架兼容性强，在使用的时候只需加入注解即可，业务侵入性低。
+  <properties>
+   <lcn.last.version>4.1.0</lcn.last.version>
+</properties>
+
+<dependency>
+    <groupId>com.codingapi</groupId>
+    <artifactId>transaction-springcloud</artifactId>
+    <version>${lcn.last.version}</version>
+</dependency>
+
+<dependency>
+   <groupId>com.codingapi</groupId>
+   <artifactId>tx-plugins-db</artifactId>
+   <version>${lcn.last.version}</version>
+</dependency>
+@Override
+@TxTransaction(isStart = true)
+@Transactional
+public int save() {
+}
+其中 @TxTransaction(isStart = true) 为lcn 事务控制注解，其中isStart = true 表示该方法是事务的发起方例如，服务A 需要调用服务B,服务B 需要调用服务C，此时 服务A为服务发起方，其余为参与方，参与方只需@TxTransaction 即可
+	分布式锁：使用redis setnx命令 、setex命令 。
+由于redis的setnx命令天生就适合用来实现锁的功能，这个命令只有在键存在的情况下为键设置值。获取锁之后，其他程序再设置值就会失败，即获取不到锁。另外为了防止死锁，需要给锁设置超时时间，即setex命令，锁超时后其他程序就又可以获取锁了。
+	Dubbo 
+  
+1.	节点角色说明：
+服务提供者 provider 
+服务运行容器：container
+注册中心：registry
+服务消费者：concumer
+统计服务调用次数和调用时间的监控中心 monitor
+2.	调用流程
+服务容器服务启动、加载、运行服务提供者==》
+服务提供者在服务启动后向注册中心注册自己的服务==》
+服务消费者在启动后向注册中心订阅自己所需的服务==》
+服务注册中心返回服务列表给服务消费者，如果有变更，注册中心将基于长连接推送变更数据给消费者==》
+服务消费者，从提供者地址列表中，基于软负载均衡算法，选一台提供者调用，如果调用失败，再选另一台调用。==》
+服务消费者和服务者，在内存中累计调用次数和调用时间，定时每分钟发送一次统计数据到监控中心。
+
+3.	Dubbo特性
+连通性：注册中心、服务提供者、消费者 三者之间是通过
+健壮性：
+伸缩性：
+升级性：

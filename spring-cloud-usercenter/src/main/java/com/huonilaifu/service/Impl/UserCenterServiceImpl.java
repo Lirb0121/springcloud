@@ -20,8 +20,7 @@ public class UserCenterServiceImpl implements UserCenterService {
     @Autowired
     private RestTemplate restTemplate;
 
-    @CacheRemove(commandKey ="")
-    @CacheResult(cacheKeyMethod = "userInfoCacheKey")
+//    @CacheResult(cacheKeyMethod = "userInfoCacheKey")
     @HystrixCommand(fallbackMethod = "backMethod")
     @Override
     public String userInfo() {
@@ -32,5 +31,9 @@ public class UserCenterServiceImpl implements UserCenterService {
 
     public String backMethod(){
         return "error";
+    }
+
+    public String userInfoCacheKey() {
+        return "userInfo";
     }
 }
