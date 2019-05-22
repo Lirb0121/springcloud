@@ -1,8 +1,9 @@
 package com.huonilaifu.service.Impl;
 
+import com.huonilaifu.domain.User;
 import com.huonilaifu.service.UserCenterService;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
-import com.netflix.hystrix.contrib.javanica.cache.annotation.CacheRemove;
+import com.netflix.hystrix.contrib.javanica.cache.annotation.CacheKey;
 import com.netflix.hystrix.contrib.javanica.cache.annotation.CacheResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class UserCenterServiceImpl implements UserCenterService {
     @Autowired
     private RestTemplate restTemplate;
 
-//    @CacheResult(cacheKeyMethod = "userInfoCacheKey")
+
     @HystrixCommand(fallbackMethod = "backMethod")
     @Override
     public String userInfo() {
@@ -29,11 +30,23 @@ public class UserCenterServiceImpl implements UserCenterService {
         return body;
     }
 
+//    @CacheResult
+    @HystrixCommand(fallbackMethod = "backMethod2")
+    @Override
+    public User userInfoById( Long id) {
+        User user = restTemplate.getForObject("http://SPRING-CLOUD-USER/userInfoById?id={1}", User.class, id);
+        return user;
+    }
+
     public String backMethod(){
         return "error";
     }
+    public User backMethod2(Long id){
+        User user = new User();
+        return user;
+    }
 
-    public String userInfoCacheKey() {
-        return "userInfo";
+    private Long userByIdKey(Long id){
+        return id;
     }
 }
